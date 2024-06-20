@@ -6,7 +6,7 @@
 #include <sys/stat.h>
 #include <string.h>
 
-#define MAX_PATH 2032 //usando tamanho máximo de path 254 caracteres, e um byte para cada caractere
+#define MAX_PATH 2032 // usando tamanho máximo de path 254 caracteres, e um byte para cada caractere
 
 // Variável com o número de threads, a ser inicializada por linha de comando
 int NUM_THREADS;
@@ -121,6 +121,26 @@ void *hashThread(void *arg) {
     pthread_exit(NULL);
 }
 
+// Função para comparar dois hashes
+int compareHashes(const unsigned char *hash1, const unsigned char *hash2) {
+    return memcmp(hash1, hash2, MD5_DIGEST_LENGTH);
+}
+
+// Função para deletar arquivos duplicados com base no hash
+void deleteDuplicates(FileList *fileList) {
+    for (size_t i = 0; i < fileList->size; i++) {
+        for (size_t j = i + 1; j < fileList->size; j++) {
+            if (compareHashes(fileList->files[i].hash, fileList->files[j].hash) == 0) {
+                if (remove(fileList->files[j].path) == 0) {
+                    printf("Deleted duplicate file: %s\n", fileList->files[j].path);
+                } else {
+                    perror("remove");
+                }
+            }
+        }
+    }
+}
+
 int main(int argc, char *argv[]) {
     if (argc != 3) {
         fprintf(stderr, "Chamada correta: %s <path> <num_threads>\n", argv[0]);
@@ -172,6 +192,9 @@ int main(int argc, char *argv[]) {
         }
         printf("\n");
     }
+
+    // Deletando arquivos duplicados
+    deleteDuplicates(&fileList);
 
     // Liberação de memória
     free(threads);
