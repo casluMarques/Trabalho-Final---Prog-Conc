@@ -97,6 +97,26 @@ void walkDirectory(const char *basePath, FileList *list) {
     closedir(dir);
 }
 
+// Função para comparar dois hashes
+int compareHashes(const unsigned char *hash1, const unsigned char *hash2) {
+    return memcmp(hash1, hash2, MD5_DIGEST_LENGTH);
+}
+
+// Função para deletar arquivos duplicados com base no hash
+void deleteDuplicates(FileList *fileList) {
+    for (size_t i = 0; i < fileList->size; i++) {
+        for (size_t j = i + 1; j < fileList->size; j++) {
+            if (compareHashes(fileList->files[i].hash, fileList->files[j].hash) == 0) {
+                if (remove(fileList->files[j].path) == 0) {
+                    printf("Deleted duplicate file: %s\n", fileList->files[j].path);
+                } else {
+                    perror("remove");
+                }
+            }
+        }
+    }
+}
+
 int main(int argc, char *argv[]) {
     if (argc != 2) {
         fprintf(stderr, "Usage: %s <path>\n", argv[0]);
@@ -119,6 +139,8 @@ int main(int argc, char *argv[]) {
         }
         printf("\n");
     }
+    
+    deleteDuplicates(&fileList);
 
     free(fileList.files);
     return 0;
